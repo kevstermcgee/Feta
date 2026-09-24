@@ -54,3 +54,12 @@ A private generated join code gates game admission. The public executable contai
 only the server certificate, never the join code or signing key. This is not a
 competitive anti-cheat or DDoS mitigation system. Read HOSTING.md for router setup,
 key storage, certificate rotation and the outside-network validation requirement.
+
+## Local exploration
+
+The desktop client's Explore solo mode uses the bundled map, fixed-step controller,
+camera and weapon presentation directly, without constructing a network client or
+changing Match readiness rules. Both characters are selectable; pause offers role
+selection and return to the main menu. No opponent, round timer or score is created.
+Solo jump edges persist until consumed by a simulation step. Entry resets movement,
+camera, prediction history and weapons; online content/protocol IDs are unchanged.

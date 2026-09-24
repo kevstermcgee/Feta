@@ -37,6 +37,12 @@ uses a bounded 200 ms history window and checks walls. During the head start the
 Scientist receives no rat position. Disconnects cancel the round without awarding
 a win. Pausing does not stop an online round.
 
+## Explore alone
+
+Choose **Explore solo**, then Feta or Scientist. Explore the real map without a
+connection, join code, opponent or timer. **Esc → Change character** switches roles;
+**Esc → Main menu** returns to the connection screen. Available in playtest 2 onward.
+
 ## Connect directly
 
 Players download Feta.exe and enter the server address and private join code.

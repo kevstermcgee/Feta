@@ -304,7 +304,7 @@
         "cargo test --locked --no-default-features --test feta_game",
         "Feta graphical captures and Windows playtest"
       ],
-      "note": "Two-player encrypted QUIC/TLS cat-and-mouse game. Read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md."
+      "note": "Two-player encrypted QUIC/TLS cat-and-mouse game with client-only solo exploration. Read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md."
     }
   }
 }

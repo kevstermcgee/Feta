@@ -151,3 +151,6 @@ Use `cargo build --release --locked --bin feta` for the client and add
 `--no-default-features --bin feta-server` instead for the dedicated server.
 `feta --capture NEW_DIR` captures its actual menu and Briar House camera paths.
 The parent of NEW_DIR must exist. Read docs/HOSTING.md before deployment.
+
+Feta solo preview: main menu → Explore solo → character. Capture mode also records
+solo selection, both character views and the solo pause menu.

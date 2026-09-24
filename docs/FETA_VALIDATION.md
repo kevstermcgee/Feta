@@ -31,3 +31,12 @@ Windows builds/tests are performed by GitHub Actions. Physical Windows input,
 cursor capture, audio listening and human map balance still need real PC
 playtesting. Automated Linux rendering does not establish those results.
 There is no claim of production availability or measured internet latency.
+
+## Solo exploration (playtest 2)
+
+Client-only change; bundled content and online protocol are unchanged, so it remains
+compatible with the deployed playtest 1 server. Full Linux checks passed in
+`.be2-work/check-20260924T222706261847Z/report.json`; final client Clippy also passed.
+Rendered main menu, solo character selection, both character views and solo pause
+were inspected. Linux X display input testing exercises the actual menu and movement.
+Windows hardware input and audio listening still require the user's PC playtest.

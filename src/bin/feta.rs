@@ -207,6 +207,9 @@ async fn run() -> vesper3d::Result<()> {
     let mut camera = CameraRig::default();
     let mut perspective = Perspective::Third;
     let mut client: Option<Client> = None;
+    let mut solo = None;
+    let mut solo_select = false;
+    let mut solo_jump = 0;
     let mut server = feta::DEFAULT_SERVER.to_string();
     let mut key = String::new();
     let mut active_field = 1;
@@ -322,7 +325,7 @@ async fn run() -> vesper3d::Result<()> {
             }
         }
         let mut state = client.as_ref().and_then(|c| c.state.clone());
-        if capture_dir.is_some() && frame >= 135 {
+        if capture_dir.is_some() && (135..250).contains(&frame) {
             let mut fixture = Match::new()?;
             fixture.join(0);
             fixture.join(1);
@@ -338,6 +341,27 @@ async fn run() -> vesper3d::Result<()> {
             paused = (170..230).contains(&frame);
             settings_open = (200..230).contains(&frame);
         }
+        // Local exploration uses the real controller/render path, without a network session.
+        if solo.is_some() {
+            state = Some(State {
+                tick: 0,
+                round: 0,
+                revision: 0,
+                phase: Phase::Hunting,
+                remaining: 0,
+                outcome: None,
+                settings: Default::default(),
+                players: vec![feta::PlayerView {
+                    slot: 0,
+                    role: solo,
+                    ready: false,
+                    pose: controller.network_state(),
+                    ack: 0,
+                    shots: 0,
+                    swings: 0,
+                }],
+            });
+        }
         let slot = client.as_ref().and_then(|c| c.slot).unwrap_or(0);
         let phase = state.as_ref().map_or(Phase::Lobby, |s| s.phase);
         let role = state
@@ -345,7 +369,7 @@ async fn run() -> vesper3d::Result<()> {
             .and_then(|s| own(s, slot))
             .and_then(|p| p.role);
         let playing = matches!(phase, Phase::Hiding | Phase::Hunting);
-        if keys.pressed(KeyCode::Escape) && client.is_some() {
+        if keys.pressed(KeyCode::Escape) && (client.is_some() || solo.is_some()) {
             paused = !paused;
             settings_open = false;
         }
@@ -378,9 +402,15 @@ async fn run() -> vesper3d::Result<()> {
             if phase == Phase::Hunting && role == Some(CharacterKind::Scientist) {
                 if is_mouse_button_pressed(MouseButton::Left) {
                     input.shot += 1;
+                    if solo.is_some() {
+                        let _ = pistol.fire(true, &room, controller.ray());
+                    }
                 }
                 if is_mouse_button_pressed(MouseButton::Right) {
                     input.melee += 1;
+                    if solo.is_some() {
+                        wrench.start(true, true);
+                    }
                 }
             }
         }
@@ -402,7 +432,11 @@ async fn run() -> vesper3d::Result<()> {
             jump: false,
         };
         accumulator += dt;
-        let mut jump_applied = history.back().map_or(input.jump, |h| h.jump);
+        let mut jump_applied = if solo.is_some() {
+            solo_jump
+        } else {
+            history.back().map_or(input.jump, |h| h.jump)
+        };
         while accumulator >= feta::DT {
             accumulator -= feta::DT;
             previous = controller.clone();
@@ -416,6 +450,7 @@ async fn run() -> vesper3d::Result<()> {
             input.movement = movement;
             input.movement.jump = input.jump > jump_applied;
             jump_applied = input.jump;
+            solo_jump = input.jump;
             if let Some(c) = &client {
                 if let Err(e) = c.send_input(input.clone()) {
                     message = e.to_string();
@@ -525,9 +560,54 @@ async fn run() -> vesper3d::Result<()> {
         ui_camera();
         let mut disconnect = false;
         let mut quit = false;
+        let mut start_solo = None;
+        if capture_dir.is_some() {
+            match frame {
+                250 => {
+                    solo_select = true;
+                    paused = false;
+                    settings_open = false;
+                }
+                270 => start_solo = Some(CharacterKind::Feta),
+                310 => start_solo = Some(CharacterKind::Scientist),
+                340 => paused = true,
+                _ => {}
+            }
+        }
         if capture_scene && frame < 135 {
             label("BRIAR HOUSE", 30., 40., 20., INK);
-        } else if client.is_none() && (capture_dir.is_none() || frame < 135) {
+        } else if solo_select {
+            panel(
+                "Explore solo",
+                "Briar House / no timer or connection needed",
+            );
+            if button("Explore as Feta", 260., 220., 440., true) {
+                start_solo = Some(CharacterKind::Feta);
+            }
+            if button("Explore as Scientist", 260., 282., 440., true) {
+                start_solo = Some(CharacterKind::Scientist);
+            }
+            label(
+                "Try movement, hiding spots and Scientist tools.",
+                260.,
+                380.,
+                19.,
+                MUTED,
+            );
+            label(
+                "Esc opens settings or lets you change character.",
+                260.,
+                411.,
+                19.,
+                MUTED,
+            );
+            if button("Back", 260., 526., 440., true) || keys.pressed(KeyCode::Escape) {
+                solo_select = false;
+            }
+        } else if client.is_none()
+            && solo.is_none()
+            && (capture_dir.is_none() || !(135..250).contains(&frame))
+        {
             panel("Feta", "A small rat. A big head start.");
             label("Server", 260., 188., 20., MUTED);
             if field(&mut server, 260., 202., active_field == 0, false) {
@@ -562,11 +642,15 @@ async fn run() -> vesper3d::Result<()> {
                     Err(e) => message = e,
                 }
             }
-            for (i, line) in message.as_bytes().chunks(49).take(3).enumerate() {
+            if button("Explore solo", 260., 420., 440., true) {
+                solo_select = true;
+                message.clear();
+            }
+            for (i, line) in message.as_bytes().chunks(49).take(2).enumerate() {
                 label(
                     &String::from_utf8_lossy(line),
                     260.,
-                    445. + i as f32 * 23.,
+                    485. + i as f32 * 23.,
                     18.,
                     ACCENT,
                 );
@@ -578,7 +662,11 @@ async fn run() -> vesper3d::Result<()> {
             if paused {
                 panel(
                     if settings_open { "Settings" } else { "Paused" },
-                    "Online rounds keep running while this menu is open.",
+                    if solo.is_some() {
+                        "Solo exploration / take your time."
+                    } else {
+                        "Online rounds keep running while this menu is open."
+                    },
                 );
                 if settings_open {
                     label(
@@ -627,10 +715,25 @@ async fn run() -> vesper3d::Result<()> {
                     if button("Settings", 260., 282., 440., true) {
                         settings_open = true;
                     }
-                    if button("Disconnect", 260., 344., 440., true) {
+                    if solo.is_some() && button("Change character", 260., 344., 440., true) {
+                        solo = None;
+                        solo_select = true;
+                        paused = false;
+                    }
+                    if button(
+                        if solo.is_some() || solo_select {
+                            "Main menu"
+                        } else {
+                            "Disconnect"
+                        },
+                        260.,
+                        406.,
+                        440.,
+                        true,
+                    ) {
                         disconnect = true;
                     }
-                    if button("Quit", 260., 406., 440., true) {
+                    if button("Quit", 260., 468., 440., true) {
                         quit = true;
                     }
                 }
@@ -773,7 +876,11 @@ async fn run() -> vesper3d::Result<()> {
             } else {
                 let s = state;
                 label(
-                    if phase == Phase::Hiding {
+                    if solo == Some(CharacterKind::Feta) {
+                        "Exploring as Feta"
+                    } else if solo == Some(CharacterKind::Scientist) {
+                        "Exploring as Scientist"
+                    } else if phase == Phase::Hiding {
                         "Find a hiding place"
                     } else {
                         "The hunt is on"
@@ -783,7 +890,9 @@ async fn run() -> vesper3d::Result<()> {
                     19.,
                     INK,
                 );
-                label(&time(s.remaining), 866., 34., 20., INK);
+                if solo.is_none() {
+                    label(&time(s.remaining), 866., 34., 20., INK);
+                }
                 if role == Some(CharacterKind::Scientist) {
                     draw_circle(480., 320., 2., Color::new(1., 1., 1., 0.8));
                 }
@@ -805,16 +914,50 @@ async fn run() -> vesper3d::Result<()> {
                 190 => Some("pause"),
                 220 => Some("settings"),
                 245 => Some("result"),
+                260 => Some("solo-select"),
+                290 => Some("solo-feta"),
+                330 => Some("solo-scientist"),
+                350 => Some("solo-pause"),
                 _ => None,
             };
             if let Some(name) = name {
                 get_screen_data().export_png(dir.join(format!("{name}.png")).to_str().unwrap());
             }
-            if frame >= 246 {
+            if frame >= 351 {
                 break;
             }
         }
+        if let Some(role) = start_solo {
+            client = None;
+            solo = Some(role);
+            solo_select = false;
+            paused = false;
+            settings_open = false;
+            controller = feta::spawn(role);
+            previous = controller.clone();
+            camera = CameraRig::default();
+            perspective = if role == CharacterKind::Feta {
+                Perspective::Third
+            } else {
+                Perspective::First
+            };
+            input = Input::default();
+            solo_jump = 0;
+            accumulator = 0.;
+            correction = V::ZERO;
+            snapshots.clear();
+            history.clear();
+            // Preserve audio event counters while clearing weapon animations/cooldowns.
+            let shots = pistol.shots;
+            let hits = wrench.hits;
+            pistol = Pistol::default();
+            pistol.shots = shots;
+            wrench = Wrench::default();
+            wrench.hits = hits;
+        }
         if disconnect {
+            solo = None;
+            solo_select = false;
             client = None;
             snapshots.clear();
             history.clear();

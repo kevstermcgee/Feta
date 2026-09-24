@@ -19,6 +19,17 @@ Verify that the download came from the repository above before deciding whether 
 run it. Do not disable antivirus or general Windows protections. The release also
 includes `SHA256SUMS.txt` for checking download integrity.
 
+## Explore alone first
+
+In playtest 2 or newer, click **Explore solo** on the main menu, then choose
+**Explore as Feta** or **Explore as Scientist**. No server, join code, second player
+or timer is involved. Walk through the same Briar House map, try hiding places,
+and test the Scientist's pistol and wrench against the scenery.
+
+Use **Esc → Change character** to try the other role (you restart at its spawn),
+**Esc → Settings** for sensitivity/FOV, or **Esc → Main menu** to return and connect
+online. There is no opponent, scoring or simulated online round in exploration.
+
 ## 2. Ask Kevin for two things
 
 - The current **server address**, including `:4000`.
