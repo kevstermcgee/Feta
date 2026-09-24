@@ -168,23 +168,15 @@ pub fn bake_tagged(world: &World, tags: &[(super::controller::Collider, f32)]) -
 fn shade(world: &World, instance: &Instance, p: V, n: V) -> V {
     let mat = &instance.material;
     if mat.emission > 0. {
-        return (mat.color * (0.80 + mat.emission * 0.20)).min(V::ONE);
+        return (mat.color * (0.75 + mat.emission * 0.25)).min(V::ONE);
     }
     let origin = p + n * 0.012;
-    // Directional hemispherical ambient lighting provides clear edge contrast
-    // between walls and adjacent objects across all orientations.
-    let hemi = 0.58 + 0.28 * n.1 + 0.10 * n.0 - 0.08 * n.2;
-    let mut light = V(0.36, 0.35, 0.33) * hemi;
-    // Actual Vesper intersections provide static contact shadows and point lights per room.
+    let mut light = V(0.24, 0.27, 0.31) * (0.8 + 0.2 * n.1);
+    // Actual Vesper intersections provide static contact shadows.
     for (pos, color, power) in [
-        (V(-3.8, 2.7, 3.2), V(1.0, 0.92, 0.80), 16.),
-        (V(-3.5, 2.7, -3.2), V(1.0, 0.95, 0.88), 16.),
-        (V(2.4, 2.8, 3.0), V(0.95, 0.90, 0.82), 12.),
-        (V(2.4, 3.25, -2.5), V(0.98, 0.88, 0.72), 14.),
-        (V(0.75, 5.8, -0.2), V(1.0, 0.92, 0.82), 14.),
-        (V(-3.2, 5.8, -1.8), V(1.0, 0.92, 0.80), 16.),
-        (V(0.8, 5.8, -3.8), V(0.95, 0.98, 1.0), 14.),
-        (V(3.5, 5.8, 0.5), V(1.0, 0.92, 0.80), 12.),
+        (V(-4.8, 3., 1.0), V(0.72, 0.87, 1.), 18.),
+        (V(2.4, 3.25, -2.5), V(1., 0.86, 0.66), 15.),
+        (V(2.4, 3.25, 3.), V(0.82, 0.91, 1.), 10.),
     ] {
         for offset in [
             V(-0.18, 0., -0.18),
@@ -290,8 +282,7 @@ void main(){
  if(tag>0.5 && tag<1.5 && ObjectStates.x<0.5){c=vec3(0.015,0.024,0.035)+vec3(spec*0.2);}
  if(tag>1.5 && tag<2.5 && ObjectStates.y>0.5){float shade=max(vcolor.b,0.04);c=vec3(1.0,0.60,0.12)*shade+vec3(spec);}
  if(tag>2.5){c=vcolor.rgb;}
- float dist=max(length(Eye-vpos)-18.0,0.0);
- float fog=1.0-exp(-dist*0.008);
- gl_FragColor=vec4(mix(c,vec3(0.45,0.52,0.58),fog),1.0);
+ float fog=1.0-exp(-length(Eye-vpos)*0.008);
+ gl_FragColor=vec4(mix(c,vec3(0.18,0.24,0.30),fog),1.0);
 }
 "#;

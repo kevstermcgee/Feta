@@ -205,7 +205,7 @@ async fn run() -> vesper3d::Result<()> {
     let mut controller = feta::spawn(CharacterKind::Feta);
     let mut previous = controller.clone();
     let mut camera = CameraRig::default();
-    let mut perspective = Perspective::First;
+    let mut perspective = Perspective::Third;
     let mut client: Option<Client> = None;
     let mut solo = None;
     let mut solo_select = false;
@@ -266,7 +266,11 @@ async fn run() -> vesper3d::Result<()> {
                                 }
                                 controller =
                                     feta::spawn(me.role.unwrap_or(CharacterKind::Scientist));
-                                perspective = Perspective::First;
+                                perspective = if me.role == Some(CharacterKind::Feta) {
+                                    Perspective::Third
+                                } else {
+                                    Perspective::First
+                                };
                                 visual_shots = me.shots;
                                 visual_swings = me.swings;
                                 paused = false;
@@ -389,7 +393,7 @@ async fn run() -> vesper3d::Result<()> {
                 sensitivity,
                 false,
             );
-            if keys.pressed(KeyCode::Q) {
+            if keys.pressed(KeyCode::Q) && role == Some(CharacterKind::Feta) {
                 perspective.toggle();
             }
             if keys.pressed(KeyCode::Space) {
@@ -700,7 +704,7 @@ async fn run() -> vesper3d::Result<()> {
                         20.,
                         MUTED,
                     );
-                    label("Q   Toggle camera    Esc   Menu", 260., 445., 20., MUTED);
+                    label("Q   Rat camera    Esc   Menu", 260., 445., 20., MUTED);
                     if button("Back", 260., 500., 440., true) {
                         settings_open = false;
                     }
@@ -932,7 +936,11 @@ async fn run() -> vesper3d::Result<()> {
             controller = feta::spawn(role);
             previous = controller.clone();
             camera = CameraRig::default();
-            perspective = Perspective::First;
+            perspective = if role == CharacterKind::Feta {
+                Perspective::Third
+            } else {
+                Perspective::First
+            };
             input = Input::default();
             solo_jump = 0;
             accumulator = 0.;
