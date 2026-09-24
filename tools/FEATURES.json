@@ -297,13 +297,14 @@
         "src/viewer/feta_net.rs",
         "src/bin/feta.rs",
         "src/bin/feta-server.rs",
-        "tests/feta_game.rs"
+        "tests/feta_game.rs",
+        "src/viewer/feta_secure.rs"
       ],
       "checks": [
         "cargo test --locked --no-default-features --test feta_game",
         "Feta graphical captures and Windows playtest"
       ],
-      "note": "Two-player private cat-and-mouse game. Read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md."
+      "note": "Two-player encrypted QUIC/TLS cat-and-mouse game. Read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md."
     }
   }
 }

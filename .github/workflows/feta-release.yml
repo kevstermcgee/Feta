@@ -1,6 +1,15 @@
 name: Feta Windows build
 on:
   workflow_dispatch:
+    inputs:
+      network_smoke:
+        description: Test a full round against the live host using a temporary repository secret
+        type: boolean
+        default: false
+      server:
+        description: Host IPv4 and port
+        type: string
+        default: '73.157.115.243:4000'
   push:
     tags: ['feta-v*']
 permissions:
@@ -20,6 +29,12 @@ jobs:
       - run: cargo clippy --all-targets --locked --no-default-features -- -D warnings
       - run: cargo clippy --locked --bin feta -- -D warnings
       - run: cargo build --release --locked --bin feta
+      - name: Verify encrypted connection from outside the host network
+        if: github.event_name == 'workflow_dispatch' && inputs.network_smoke
+        env:
+          FETA_JOIN_KEY: ${{ secrets.FETA_SMOKE_KEY }}
+          FETA_SMOKE_SERVER: ${{ inputs.server }}
+        run: cargo run --release --locked --no-default-features --example feta_smoke -- "$env:FETA_SMOKE_SERVER"
       - name: Package standalone game and player guide
         shell: pwsh
         run: |

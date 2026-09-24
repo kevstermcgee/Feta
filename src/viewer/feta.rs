@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 
 pub const HZ: u64 = 60;
 pub const DT: f32 = 1. / HZ as f32;
-pub const VERSION: u32 = 1;
-pub const DEFAULT_SERVER: &str = "100.92.249.99:4000";
+pub const VERSION: u32 = 2;
+pub const DEFAULT_SERVER: &str = "73.157.115.243:4000";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settings {
@@ -135,6 +135,7 @@ pub fn content_id() -> u64 {
     let sources = [
         include_str!("feta.rs"),
         include_str!("feta_net.rs"),
+        include_str!("feta_secure.rs"),
         include_str!("house.rs"),
         include_str!("controller.rs"),
         include_str!("profile.rs"),

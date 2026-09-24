@@ -112,8 +112,19 @@ fn field(value: &mut String, x: f32, y: f32, active: bool, secret: bool) -> bool
     draw_rectangle(x, y, 440., 42., Color::new(0.09, 0.13, 0.14, 1.));
     draw_rectangle_lines(x, y, 440., 42., 1., if active { ACCENT } else { MUTED });
     if active {
+        let control = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+        if control && is_key_pressed(KeyCode::V) {
+            if let Some(paste) = miniquad::window::clipboard_get() {
+                *value = paste
+                    .trim()
+                    .chars()
+                    .filter(|c| c.is_ascii() && !c.is_control())
+                    .take(128)
+                    .collect();
+            }
+        }
         while let Some(c) = get_char_pressed() {
-            if c.is_ascii() && !c.is_control() && value.len() < 128 {
+            if !control && c.is_ascii() && !c.is_control() && value.len() < 128 {
                 value.push(c);
             }
         }
@@ -533,7 +544,9 @@ async fn run() -> vesper3d::Result<()> {
                 match server
                     .trim()
                     .parse::<SocketAddr>()
-                    .map_err(|_| "Use an IP address and port, such as 100.x.x.x:4000".to_string())
+                    .map_err(|_| {
+                        "Use an IP address and port, such as 192.168.0.109:4000".to_string()
+                    })
                     .and_then(|addr| {
                         Client::connect(addr, key.clone(), hash).map_err(|e| e.to_string())
                     }) {

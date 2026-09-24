@@ -277,41 +277,74 @@ fn snapshots_stay_under_mtu_in_every_phase() {
     }
 }
 #[test]
-fn actual_udp_authentication_capacity_commands_and_disconnect() {
-    let mut server = Server::bind("127.0.0.1:0", "test-key-only".into()).unwrap();
+fn actual_encrypted_authentication_capacity_commands_and_disconnect() {
+    use vesper3d::viewer::feta_secure::Identity;
+    let identity = rcgen::generate_simple_self_signed(vec!["feta.local".into()]).unwrap();
+    let certificate = identity.cert.der().to_vec();
+    let mut server = Server::bind_with_identity(
+        "127.0.0.1:0",
+        "test-key-only".into(),
+        Identity {
+            certificate: certificate.clone(),
+            private_key: identity.signing_key.serialize_der(),
+        },
+    )
+    .unwrap();
     let addr = server.address().unwrap();
     let hash = feta::content_id();
-    let mut bad = Client::connect(addr, "wrong-key".into(), hash).unwrap();
-    bad.poll().unwrap();
-    server.poll().unwrap();
-    bad.poll().unwrap();
+    let connect = |key: &str, hash| {
+        Client::connect_with_certificate(addr, key.into(), hash, certificate.clone()).unwrap()
+    };
+    fn pump(server: &mut Server, clients: &mut [&mut Client]) {
+        for _ in 0..50 {
+            for c in clients.iter_mut() {
+                if let Err(e) = c.poll() {
+                    c.error = Some(e.to_string());
+                }
+            }
+            server.step().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        for c in clients.iter_mut() {
+            if let Err(e) = c.poll() {
+                c.error = Some(e.to_string());
+            }
+        }
+    }
+    let mut bad = connect("wrong-key", hash);
+    pump(&mut server, &mut [&mut bad]);
     assert!(bad.error.as_ref().unwrap().contains("Incorrect"));
     assert_eq!(server.peers(), 0);
-    let mut mismatch = Client::connect(addr, "test-key-only".into(), hash + 1).unwrap();
-    mismatch.poll().unwrap();
-    server.poll().unwrap();
-    mismatch.poll().unwrap();
+    drop(bad);
+    let mut mismatch = connect("test-key-only", hash + 1);
+    pump(&mut server, &mut [&mut mismatch]);
     assert!(mismatch.error.is_some());
-    let mut a = Client::connect(addr, "test-key-only".into(), hash).unwrap();
-    let mut b = Client::connect(addr, "test-key-only".into(), hash).unwrap();
-    for c in [&mut a, &mut b] {
-        c.poll().unwrap();
-        server.poll().unwrap();
-        c.poll().unwrap();
-        assert!(c.slot.is_some());
-    }
-    let mut third = Client::connect(addr, "test-key-only".into(), hash).unwrap();
-    third.poll().unwrap();
-    server.poll().unwrap();
-    third.poll().unwrap();
+    drop(mismatch);
+    let impostor = rcgen::generate_simple_self_signed(vec!["feta.local".into()]).unwrap();
+    let mut untrusted = Client::connect_with_certificate(
+        addr,
+        "test-key-only".into(),
+        hash,
+        impostor.cert.der().to_vec(),
+    )
+    .unwrap();
+    pump(&mut server, &mut [&mut untrusted]);
+    assert!(untrusted
+        .error
+        .as_ref()
+        .unwrap()
+        .contains("Secure connection failed"));
+    assert_eq!(server.peers(), 0);
+    drop(untrusted);
+    let mut a = connect("test-key-only", hash);
+    let mut b = connect("test-key-only", hash);
+    pump(&mut server, &mut [&mut a, &mut b]);
+    assert!(a.slot.is_some() && b.slot.is_some());
+    let mut third = connect("test-key-only", hash);
+    pump(&mut server, &mut [&mut a, &mut b, &mut third]);
     assert!(third.error.is_some());
-    for _ in 0..3 {
-        server.step().unwrap();
-    }
-    a.poll().unwrap();
-    b.poll().unwrap();
+    drop(third);
     assert_eq!(a.state.as_ref().unwrap().players.len(), 2);
-    // Forged session and malformed/oversized packets cannot move a player or kill the server.
     let rogue = std::net::UdpSocket::bind("127.0.0.1:0").unwrap();
     rogue.send_to(&vec![b'x'; 2000], addr).unwrap();
     rogue.send_to(b"{garbage", addr).unwrap();
@@ -327,7 +360,7 @@ fn actual_udp_authentication_capacity_commands_and_disconnect() {
             addr,
         )
         .unwrap();
-    server.step().unwrap();
+    pump(&mut server, &mut [&mut a, &mut b]);
     assert!(server
         .game
         .players
@@ -336,10 +369,7 @@ fn actual_udp_authentication_capacity_commands_and_disconnect() {
         .all(|p| p.role.is_none()));
     a.command(Action::Select(Role::Scientist));
     b.command(Action::Select(Role::Feta));
-    std::thread::sleep(std::time::Duration::from_millis(260));
-    a.poll().unwrap();
-    b.poll().unwrap();
-    server.poll().unwrap();
+    pump(&mut server, &mut [&mut a, &mut b]);
     assert_eq!(
         server.game.players[a.slot.unwrap()].as_ref().unwrap().role,
         Some(Role::Scientist)
@@ -349,7 +379,7 @@ fn actual_udp_authentication_capacity_commands_and_disconnect() {
         Some(Role::Feta)
     );
     a.disconnect();
-    server.poll().unwrap();
+    pump(&mut server, &mut [&mut b]);
     assert_eq!(server.peers(), 1);
 }
 #[test]

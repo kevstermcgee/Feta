@@ -37,13 +37,12 @@ uses a bounded 200 ms history window and checks walls. During the head start the
 Scientist receives no rat position. Disconnects cancel the round without awarding
 a win. Pausing does not stop an online round.
 
-## Private play
+## Connect directly
 
-Windows players install Tailscale once, receive a machine-sharing invitation from
-the host, and enter the private server address and join key. Only two players can
-connect. Tailscale provides encrypted, authenticated transport. The extra join key
-is not a substitute for it. No public port forwarding is needed. Follow the host
-guide to restrict shared users to the game port before inviting anyone.
+Players download Feta.exe and enter the server address and private join code.
+QUIC/TLS encryption and pinned server verification are built in: no Tailscale,
+VPN account or extra app is needed. The host maps one UDP port on the router (automatically where supported);
+players do not configure their routers. See the step-by-step guides above.
 
 ## Development
 

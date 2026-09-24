@@ -2,6 +2,7 @@
 pub mod controller;
 pub mod feta;
 pub mod feta_net;
+pub mod feta_secure;
 pub mod game;
 pub mod game_example;
 pub mod interaction;

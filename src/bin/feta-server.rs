@@ -1,6 +1,6 @@
 //! Private dedicated Feta server. Join key is read from FETA_JOIN_KEY, never from argv.
 use std::{
-    net::{IpAddr, SocketAddr},
+    net::SocketAddr,
     time::{Duration, Instant},
 };
 use vesper3d::viewer::{feta, feta_net::Server};
@@ -24,23 +24,14 @@ fn main() -> vesper3d::Result<()> {
                 );
             }
             "--help" => {
-                println!("feta-server [--listen IP:4000] [--ticks N]\nSet FETA_JOIN_KEY in a private environment file. Bind loopback or Tailscale only.");
+                println!("feta-server [--listen IP:4000] [--ticks N]\nSet FETA_JOIN_KEY in a private environment file. QUIC/TLS encryption is built in. Set FETA_TLS_KEY_FILE to the server private key.");
                 return Ok(());
             }
             other => return Err(format!("Unknown argument: {other}").into()),
         }
         i += 1;
     }
-    let parsed: SocketAddr = address.parse()?;
-    let private = match parsed.ip() {
-        IpAddr::V4(ip) => {
-            ip.is_loopback() || (ip.octets()[0] == 100 && (64..=127).contains(&ip.octets()[1]))
-        }
-        IpAddr::V6(ip) => ip.is_loopback(),
-    };
-    if !private {
-        return Err("Bind to 127.0.0.1 or this server's Tailscale IPv4 address; public/wildcard listeners are disabled.".into());
-    }
+    let _: SocketAddr = address.parse()?;
     if ticks == Some(0) {
         return Err("--ticks must be positive".into());
     }

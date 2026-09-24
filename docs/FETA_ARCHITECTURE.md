@@ -8,7 +8,7 @@ remain `be2`/`vesper3d`; shipping binaries are `feta` and `feta-server`.
 - `viewer/feta_net.rs`: independent versioned Feta packets, OS-random session tokens,
   join key, endpoint binding, input/command sequencing, repeated state/commands,
   bounded receives and datagrams. The old BlueEngine UDP protocol is not used by Feta. Bundled content IDs hash normalized source, avoiding platform-specific floating-point geometry differences.
-- `bin/feta-server.rs`: private-interface listener, 60 Hz scheduling, metrics.
+- `bin/feta-server.rs`: encrypted UDP listener, 60 Hz scheduling, metrics.
 - `bin/feta.rs`: menu, connection, prediction/reconciliation, remote interpolation,
   actual game renderer and visual captures.
 - `bin/feta_input/mod.rs`: inherited keyboard layouts and Windows focus checks.
@@ -37,10 +37,20 @@ third-person camera. Scientist uses first-person aiming to align the server ray 
 the crosshair. Remote players interpolate roughly 100 ms behind; own movement predicts
 and replays inputs after authoritative correction.
 
-Security relies on Tailscale for encrypted authenticated peers. The server binary
-rejects wildcard/public bind addresses. A private environment join key gates entry;
-128-bit OS-random session tokens plus source endpoints gate later messages. JSON
-packets are capped at 1400 bytes; receive work is bounded at 128 datagrams per poll,
-Hello work at 12 requests per second. This is a trusted friends' game, not a public
-competitive anti-cheat service. Join keys are not logged, embedded, or saved by the client.
-See HOSTING.md for the access-policy requirement.
+Security uses Quinn/Rustls QUIC datagrams with TLS 1.3 and the bundled server
+certificate as the sole trust anchor. There is no insecure verifier or plaintext
+fallback. `viewer/feta_secure.rs` runs one async network thread per endpoint behind
+bounded queues; the simulation/render thread does not block on network I/O. Server
+private keys stay outside the repository. CI uses ephemeral test identities.
+
+At most eight handshake/transport tasks exist, with stateless address validation
+before TLS allocation, handshake/data timeouts, 240 datagrams/second per connection,
+no application streams and bounded queues. Only two authenticated game sessions may
+exist. Game Hello processing remains limited to 12/second. JSON payloads are at most
+1100 bytes, fitting QUIC's minimum-path datagram budget. Endpoint-bound random session
+tokens and command sequences remain an additional defense inside encrypted transport.
+
+A private generated join code gates game admission. The public executable contains
+only the server certificate, never the join code or signing key. This is not a
+competitive anti-cheat or DDoS mitigation system. Read HOSTING.md for router setup,
+key storage, certificate rotation and the outside-network validation requirement.

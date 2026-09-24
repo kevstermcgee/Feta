@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew Feta router mapping every 30 minutes
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

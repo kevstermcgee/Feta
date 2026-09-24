@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/Feta
-ExecStart=%h/.local/lib/feta/feta-server --listen 100.92.249.99:4000
+ExecStart=%h/.local/lib/feta/feta-server --listen 0.0.0.0:4000
 EnvironmentFile=%h/.config/feta/server.env
 Restart=on-failure
 RestartSec=5

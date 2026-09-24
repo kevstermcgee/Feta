@@ -1,13 +1,14 @@
-//! Bounded Feta UDP transport. Deploy only on loopback or a private Tailscale interface.
-//! Tailscale supplies encryption and peer authentication; the join key is an extra gate.
+//! Bounded Feta game messages over authenticated QUIC/TLS datagrams.
+//! The client pins the bundled server certificate; the join key gates game admission.
 use super::feta::{self, Action, Input, Match, State};
+use super::feta_secure::{Identity, SecureSocket, CERTIFICATE};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::VecDeque,
-    net::{SocketAddr, UdpSocket},
+    net::SocketAddr,
     time::{Duration, Instant},
 };
-pub const MTU: usize = 1400;
+pub const MTU: usize = super::feta_secure::PAYLOAD;
 pub type Token = [u64; 2];
 pub fn random_token() -> crate::Result<Token> {
     let mut bytes = [0u8; 16];
@@ -57,35 +58,23 @@ pub fn encode(packet: &Wire) -> crate::Result<Vec<u8>> {
     }
     Ok(bytes)
 }
-fn send(socket: &UdpSocket, address: SocketAddr, packet: &Wire) -> crate::Result<()> {
+fn send(socket: &SecureSocket, address: SocketAddr, packet: &Wire) -> crate::Result<()> {
     socket.send_to(&encode(packet)?, address)?;
     Ok(())
 }
-fn receive(socket: &UdpSocket, buffer: &mut [u8]) -> crate::Result<Vec<(SocketAddr, Wire)>> {
-    let mut packets = Vec::new();
-    for _ in 0..128 {
-        match socket.recv_from(buffer) {
-            Ok((len, addr)) if len <= MTU => {
-                if let Ok(packet) = serde_json::from_slice(&buffer[..len]) {
-                    packets.push((addr, packet));
-                }
+fn receive(socket: &SecureSocket) -> crate::Result<Vec<(SocketAddr, Wire)>> {
+    Ok(socket
+        .receive()?
+        .into_iter()
+        .filter_map(|(addr, bytes)| {
+            if bytes.len() > MTU {
+                return None;
             }
-            Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => break,
-            // Windows may report ICMP port-unreachable after the peer exits.
-            Err(e)
-                if matches!(
-                    e.kind(),
-                    std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionRefused
-                ) =>
-            {
-                continue
-            }
-            Err(e) => return Err(e.into()),
-        }
-    }
-    Ok(packets)
+            serde_json::from_slice(&bytes).ok().map(|p| (addr, p))
+        })
+        .collect())
 }
+
 struct Session {
     address: SocketAddr,
     nonce: Token,
@@ -96,9 +85,8 @@ struct Session {
 }
 pub struct Server {
     pub game: Match,
-    socket: UdpSocket,
+    socket: SecureSocket,
     sessions: [Option<Session>; 2],
-    buffer: Box<[u8]>,
     key: String,
     content: u64,
     hello_window: Instant,
@@ -109,15 +97,23 @@ impl Server {
         if !(8..=128).contains(&key.len()) {
             return Err("Join key must contain 8..128 bytes".into());
         }
-        let socket = UdpSocket::bind(address)?;
-        socket.set_nonblocking(true)?;
+        Self::bind_with_identity(address, key, Identity::load()?)
+    }
+    pub fn bind_with_identity(
+        address: &str,
+        key: String,
+        identity: Identity,
+    ) -> crate::Result<Self> {
+        if !(8..=128).contains(&key.len()) {
+            return Err("Join key must contain 8..128 bytes".into());
+        }
+        let socket = SecureSocket::server(address.parse()?, identity)?;
         let game = Match::new()?;
         let content = feta::content_id();
         Ok(Self {
             game,
             socket,
             sessions: [None, None],
-            buffer: vec![0; 65536].into_boxed_slice(),
             key,
             content,
             hello_window: Instant::now(),
@@ -125,7 +121,7 @@ impl Server {
         })
     }
     pub fn address(&self) -> crate::Result<SocketAddr> {
-        Ok(self.socket.local_addr()?)
+        Ok(self.socket.local_addr())
     }
     pub fn peers(&self) -> usize {
         self.sessions.iter().flatten().count()
@@ -136,7 +132,7 @@ impl Server {
             self.hello_window = now;
             self.hellos = 0;
         }
-        for (address, packet) in receive(&self.socket, &mut self.buffer)? {
+        for (address, packet) in receive(&self.socket)? {
             if let Wire::Hello {
                 version,
                 content,
@@ -274,9 +270,8 @@ impl Server {
 }
 /// Client socket accepts packets only from the configured endpoint and current random session.
 pub struct Client {
-    socket: UdpSocket,
+    socket: SecureSocket,
     server: SocketAddr,
-    buffer: Box<[u8]>,
     nonce: Token,
     token: Option<Token>,
     pub slot: Option<usize>,
@@ -295,17 +290,22 @@ impl Client {
         if !(8..=128).contains(&key.len()) {
             return Err("Enter the join key (8..128 characters).".into());
         }
-        let socket = UdpSocket::bind(if server.is_ipv4() {
-            "0.0.0.0:0"
-        } else {
-            "[::]:0"
-        })?;
-        socket.set_nonblocking(true)?;
+        Self::connect_with_certificate(server, key, content, CERTIFICATE.to_vec())
+    }
+    pub fn connect_with_certificate(
+        server: SocketAddr,
+        key: String,
+        content: u64,
+        certificate: Vec<u8>,
+    ) -> crate::Result<Self> {
+        if !(8..=128).contains(&key.len()) {
+            return Err("Enter a join key of 8..128 bytes".into());
+        }
+        let socket = SecureSocket::client(server, certificate)?;
         let now = Instant::now();
         Ok(Self {
             socket,
             server,
-            buffer: vec![0; 65536].into_boxed_slice(),
             nonce: random_token()?,
             token: None,
             slot: None,
@@ -343,7 +343,7 @@ impl Client {
     pub fn poll(&mut self) -> crate::Result<Vec<State>> {
         let now = Instant::now();
         let mut states = Vec::new();
-        for (address, packet) in receive(&self.socket, &mut self.buffer)? {
+        for (address, packet) in receive(&self.socket)? {
             if address != self.server {
                 continue;
             }
@@ -377,7 +377,7 @@ impl Client {
         }
         if self.token.is_none() && now.duration_since(self.started) > Duration::from_secs(12) {
             self.error.get_or_insert(
-                "Cannot reach server. Check Tailscale and the server address.".into(),
+                "Cannot reach server. Check the address and ask the host to check UDP port forwarding.".into(),
             );
         } else if self.token.is_some()
             && now.duration_since(self.last_receive) > Duration::from_secs(6)

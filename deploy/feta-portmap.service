@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew only Feta's temporary UDP router mapping
+After=network-online.target feta-server.service
+Wants=feta-server.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/Feta/tools/feta_portmap.py enable
+NoNewPrivileges=true
+UMask=0077
