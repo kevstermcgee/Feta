@@ -15,8 +15,14 @@ Friends playtest based on BlueEngine 8a667e7, using QUIC/TLS 1.3.
 - Linux release client and isolated headless server built successfully.
 - Rendered menu, lobby, pause, settings, result, under-table rat camera and garden
   captures inspected using an off-screen Linux display.
-- Router confirmed a renewable one-hour UDP 4000 mapping. This alone does not
-  establish outside-network reachability; the Windows external test is pending.
+- Router confirmed a renewable one-hour UDP 4000 mapping.
+- [Windows release CI](https://github.com/kevstermcgee/Feta/actions/runs/36064644657)
+  passed at commit `64fa8b4`, including an external complete-round test from an
+  Azure Windows runner to the deployed Linux server: 41.11 seconds, snapshots
+  `[818, 816]`, opposite roles, 5-second hide, 30-second hunt, Feta victory and
+  cleared rematch lobby. The temporary test code was revoked afterward.
+- Downloaded Windows artifacts passed their SHA-256 checks. The standalone
+  x64 executable is 4,668,416 bytes; the guide bundle is 2,244,126 bytes.
 
 Check report: `.be2-work/check-20260924T215106504224Z/report.json`.
 Visual evidence: `previews/feta/` (scripted fixture states, not manual gameplay).

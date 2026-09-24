@@ -29,7 +29,8 @@ Stopping the renewal timer alone lets the current lease expire within one hour.
 Stopping the game service alone leaves no game listening, but the timer can start
 it again; stop both when intentionally shutting down hosting. If the router loses
 its mappings after a reboot, run the portmap service or wait for renewal.
-An outside-network connection test is still required to verify ISP reachability.
+An outside-network Windows CI test completed a full two-client round successfully;
+see FETA_VALIDATION.md. Retest reachability after changing the network or ISP.
 
 ## Manual alternative, if automatic mapping is unavailable
 
@@ -130,5 +131,5 @@ verifies the bundled certificate. Do not copy private env values into public log
 
 The protocol bounds packet/queue sizes and handshake/session counts, rejects
 unauthenticated data and rate-limits client datagrams. It is a small friends' server,
-not a DDoS-protected hosting service. Public reachability and real Windows input
-still need the outside-PC playtest described above.
+not a DDoS-protected hosting service. Public reachability passed the external Windows CI round test. Real Windows input
+and human gameplay still need the PC playtest described above.
