@@ -89,6 +89,51 @@ pub struct Controller {
     vertical_velocity: f32,
     grounded: bool,
 }
+
+/// Complete movement state for authoritative Feta reconciliation. Never accepted from clients.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct KinematicState {
+    #[serde(rename = "p")]
+    pub position: V,
+    #[serde(rename = "y")]
+    pub yaw: f32,
+    #[serde(rename = "t")]
+    pub pitch: f32,
+    #[serde(rename = "v")]
+    velocity: V,
+    #[serde(rename = "f")]
+    feet: f32,
+    #[serde(rename = "h")]
+    body_height: f32,
+    #[serde(rename = "j")]
+    vertical_velocity: f32,
+    #[serde(rename = "g")]
+    grounded: bool,
+}
+impl Controller {
+    pub fn network_state(&self) -> KinematicState {
+        KinematicState {
+            position: self.position,
+            yaw: self.yaw,
+            pitch: self.pitch,
+            velocity: self.velocity,
+            feet: self.feet,
+            body_height: self.body_height,
+            vertical_velocity: self.vertical_velocity,
+            grounded: self.grounded,
+        }
+    }
+    pub fn restore_network_state(&mut self, state: &KinematicState) {
+        self.position = state.position;
+        self.yaw = state.yaw;
+        self.pitch = state.pitch;
+        self.velocity = state.velocity;
+        self.feet = state.feet;
+        self.body_height = state.body_height;
+        self.vertical_velocity = state.vertical_velocity;
+        self.grounded = state.grounded;
+    }
+}
 impl Default for Controller {
     fn default() -> Self {
         Self {

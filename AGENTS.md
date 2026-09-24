@@ -1,3 +1,7 @@
+# Feta game fork
+
+For Feta changes, read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md. Keep private join keys, account emails and session tokens out of Git and logs. Shipping binaries are feta and feta-server; preserve inherited tools and history.
+
 # Working on Blue Engine
 
 For **content authoring**, start with `python tools/author.py describe` and tools/AUTHORING.md. Use query/assets/recipes/schema and native map tools; do not load engine source into context. The supported workflow includes static maps, inspectable props and bounded GameDocument v1 prototypes (docs/GAME_QUICKSTART.md). Report unsupported gameplay requirements as engine work rather than inventing APIs. The architecture-reading and Rust-check requirements below apply to **engine maintenance**, not data-only authoring.

@@ -290,6 +290,20 @@
         "graphical --capture-game smoke"
       ],
       "note": "GameDocument v1: movement profile, spawns, bounded interaction rules/counters and server-owned objective state. Native game-describe/schema/validate/example; --game on client and headless. No scripting or physical doors."
+    },
+    "feta_game": {
+      "files": [
+        "src/viewer/feta.rs",
+        "src/viewer/feta_net.rs",
+        "src/bin/feta.rs",
+        "src/bin/feta-server.rs",
+        "tests/feta_game.rs"
+      ],
+      "checks": [
+        "cargo test --locked --no-default-features --test feta_game",
+        "Feta graphical captures and Windows playtest"
+      ],
+      "note": "Two-player private cat-and-mouse game. Read docs/FETA_ARCHITECTURE.md and docs/HOSTING.md."
     }
   }
 }

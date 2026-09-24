@@ -1,66 +1,69 @@
-# BlueEngine
+# Feta
 
-<img src="assets/branding/blueengine.png" alt="BlueEngine official logo" width="128" height="128">
+<img src="assets/branding/blueengine.png" alt="Feta the white rat" width="112">
 
-An AI-first Rust 3D engine foundation for building small, testable prototypes.
-Continues the complete BlueEngineAntigravity history. The primary development
-fixture is **Blue Test Lab**; furnished legacy maps remain reusable reference assets.
+A small, private, two-player cat-and-mouse game built on BlueEngine.
+One Scientist. One very quick rat. One furnished house and garden.
 
-## Start here
+**[Download for Windows](https://github.com/kevstermcgee/Feta/releases)** ·
+**[Player setup, step by step](docs/PLAY_WITH_KEVIN.md)** ·
+**[Host setup](docs/HOSTING.md)**
 
-- Content authors: `python tools/author.py describe`, then [tools/AUTHORING.md](tools/AUTHORING.md).
-- Native discovery: `be2-tools describe`, `be2-tools search multiplayer`, `be2-tools catalog`.
-- Rust prototypes: [30-line quickstart](docs/AI_QUICKSTART.md), `cargo run --locked --no-default-features --example prototype`.
-- Engine maintenance: [AGENTS.md](AGENTS.md), [current architecture](BE2_ARCHITECTURE.md), [decisions](docs/adr/README.md).
+Choose opposite characters and both press Ready. Feta gets 60 seconds to hide;
+the Scientist then has five minutes to find and hit Feta. A shot or wrench hit wins
+for the Scientist. Survive the hunt and Feta wins. After the result, choose again.
+The first connected player can change both times in the lobby. Time changes clear
+both Ready confirmations. The hunt duration does not include the head start.
 
-Cargo package/binaries remain `be2`; the library remains `vesper3d` for compatibility.
+Briar House has two floors, furnished bedrooms, a kitchen, living room, bathroom,
+a fenced garden, a potting shelter, and low furniture/shortcuts for the rat. Props
+are static cover. This is not prop hunt: there is no disguising or prop carrying.
 
-## Run and author
+| Control | Action |
+|---|---|
+| WASD or arrows | Move |
+| Mouse | Look |
+| Shift | Sprint |
+| Space | Jump |
+| Ctrl or C | Crouch |
+| Left click | Scientist's pistol |
+| Right click | Scientist's wrench |
+| Q | Feta's first/third-person camera |
+| Esc | Resume / Settings / Disconnect / Quit |
+
+The server is authoritative at 60 Hz and sends small snapshots at 20 Hz. Client
+movement prediction and interpolation keep presentation responsive. Hit validation
+uses a bounded 200 ms history window and checks walls. During the head start the
+Scientist receives no rat position. Disconnects cancel the round without awarding
+a win. Pausing does not stop an online round.
+
+## Private play
+
+Windows players install Tailscale once, receive a machine-sharing invitation from
+the host, and enter the private server address and join key. Only two players can
+connect. Tailscale provides encrypted, authenticated transport. The extra join key
+is not a substitute for it. No public port forwarding is needed. Follow the host
+guide to restrict shared users to the game port before inviting anyone.
+
+## Development
 
 ```sh
-cargo run --locked --bin be2
-cargo run --locked --no-default-features --bin be2-headless -- --server 127.0.0.1:4000
-cargo run --locked --bin be2 -- --connect 127.0.0.1:4000
-cargo run --locked --no-default-features --bin be2-tools -- describe
-cargo run --locked --no-default-features --bin be2-tools -- export-lab lab.json
-cargo run --locked --bin be2 -- --map lab.json
+cargo run --locked --no-default-features --bin feta-server -- --help
+cargo run --locked --bin feta
+python3 tools/be2.py check
 ```
 
-Use the same map on both peers. Protocol 3 rejects different initial content.
-Output files must be new. `export-house` and assets/maps/starters retain reference maps.
-WASD/arrows move, mouse looks, Space jumps, Ctrl/C crouches, E carries/drops,
-left click uses the demo tool, scroll selects tools, Q changes perspective, Esc pauses.
-Scientist/Feta remain demo profiles. GameDocument v1 adds configurable movement and simple interaction objectives; see [game quickstart](docs/GAME_QUICKSTART.md).
+The release server uses `cargo build --release --locked --no-default-features --bin feta-server`.
+The client uses `cargo build --release --locked --bin feta`.
+No map, audio, font or texture downloads are needed by the executable.
 
-## Current capabilities and limits
+See [Feta architecture](docs/FETA_ARCHITECTURE.md) and [validation](docs/FETA_VALIDATION.md).
+The original BlueEngine tools/binaries remain available for development; see
+[the inherited README](README_BLUEENGINE.md).
 
-- Shared 60 Hz player simulation; graphics/audio-free headless build; Rapier props.
-- Dedicated UDP server, client prediction, interpolation, spatial interest,
-  acknowledged deltas/keyframe recovery and authoritative prop ownership/combat.
-- Validated MapDocument authoring, stable semantic IDs, transactional edits,
-  catalog assets, bounded discovery and route/capture tools.
-- SceneBuilder/prelude for static boxes and catalog props; ID-based impulse/position APIs.
+## Credits and license
 
-Networking is development-grade JSON/UDP with a 1400-byte packet limit. There is no
-cryptographic authentication, encryption, binary codec or session-token migration.
-Large snapshots can exceed that limit; bounded encoding is not snapshot chunking.
-Map fingerprints detect accidental mismatch, not hostile forgery. Map v1 does not
-encode custom game rules, multiplayer spawn profiles or arbitrary dynamic meshes.
-
-## Validation
-
-`python tools/be2.py check` runs formatting, rustdoc, tests and Clippy in both feature
-configurations. CI runs on Linux and Windows. Focused suites cover prototype APIs,
-native capability evidence, content handshakes, malformed packets and multiplayer
-including a separate server process. See [the refinement report](docs/REFINEMENT.md)
-for this pass's measured results and remaining work.
-
-## History and attribution
-
-Kevin Ward directed the project; OpenAI Codex contributed engine/tooling development;
-Google DeepMind Antigravity contributed the earlier fork, integrations and weapons.
-Original authorship, Git history and MIT license are preserved. BlueEngine continues
-that work with OpenAI Codex. Historical Vesper/Blue v1 documentation remains for
-asset/offline-renderer compatibility; current runtime guidance is linked above.
-
-Try the data-driven objective demo with `Launch Three Switches.cmd` (after a release build), or `be2 --game assets/games/three-switches/game.json`. See [game quickstart](docs/GAME_QUICKSTART.md) and [implementation evidence and limits](docs/GAME_REFINEMENT.md).
+Game direction: Kevin Ward. Feta implementation and tooling: OpenAI Codex, working
+with Kevin. Built on BlueEngine, retaining its original MIT license and history,
+including the earlier Google DeepMind Antigravity contributions. The approved white
+rat artwork is preserved. See [LICENSE](LICENSE).

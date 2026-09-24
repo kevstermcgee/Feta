@@ -1,5 +1,7 @@
 //! Real-time adapter. The original scene, geometry and offline renderer remain shared.
 pub mod controller;
+pub mod feta;
+pub mod feta_net;
 pub mod game;
 pub mod game_example;
 pub mod interaction;

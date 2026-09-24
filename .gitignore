@@ -5,3 +5,7 @@
 
 /.be2-work/
 __pycache__/
+/dist/
+/bundle/
+.env
+*.env

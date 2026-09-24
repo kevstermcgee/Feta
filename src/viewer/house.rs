@@ -132,6 +132,12 @@ fn cabinet(b: &mut Builder, p: V, s: V) {
     }
 }
 pub fn build() -> crate::Result<Room> {
+    build_variant(false)
+}
+pub(crate) fn build_feta() -> crate::Result<Room> {
+    build_variant(true)
+}
+fn build_variant(feta: bool) -> crate::Result<Room> {
     let mut b = Builder {
         scene: Scene::default(),
         colliders: vec![],
@@ -229,7 +235,14 @@ pub fn build() -> crate::Result<Room> {
     solid(&mut b, "white", V(3.28, 3.7, 0.8), V(0.045, 0.50, 3.4));
     solid(&mut b, "white", V(4.65, 3.7, 4.18), V(1.35, 0.50, 0.045));
     // Upstairs: front hall, large bedroom west, bedroom and bathroom east.
-    solid(&mut b, "wall", V(-0.5, 4.8, -2.), V(0.08, 1.6, 4.));
+    if feta {
+        // Low two-exit shortcut between the bedrooms: 48 cm clear, rat only.
+        solid(&mut b, "wall", V(-0.5, 4.8, -4.7), V(0.08, 1.6, 1.3));
+        solid(&mut b, "wall", V(-0.5, 4.8, 0.0), V(0.08, 1.6, 2.));
+        solid(&mut b, "wall", V(-0.5, 5.04, -2.7), V(0.08, 1.36, 0.7));
+    } else {
+        solid(&mut b, "wall", V(-0.5, 4.8, -2.), V(0.08, 1.6, 4.));
+    }
     for (x, half) in [(-4.15, 1.85), (-0.65, 0.25), (0.75, 1.25)] {
         solid(&mut b, "wall", V(x, 4.8, 2.), V(half, 1.6, 0.08));
     }
@@ -493,10 +506,56 @@ pub fn build() -> crate::Result<Room> {
         }
     }
     b.cube("stone", V(0., -0.015, 7.2), V(1.0, 0.015, 1.1));
+    if feta {
+        // Garden potting shelter: two open ends, low benches and distinct cover.
+        for x in [-1.5, 1.5] {
+            solid(&mut b, "wood", V(x, 1.1, -12.3), V(0.07, 1.1, 1.1));
+        }
+        solid(&mut b, "roof", V(0., 2.25, -12.3), V(1.65, 0.08, 1.25));
+        props::place(
+            &mut b,
+            PropKind::Table,
+            "feta-potting-table",
+            "Potting table",
+            V(0., 0., -12.5),
+        );
+        props::place(
+            &mut b,
+            PropKind::VasePlant,
+            "feta-potting-plant",
+            "Potted herb",
+            V(0., 0.8, -12.5),
+        );
+        // Low storage crates make searchable cover without sealing a player inside.
+        for (i, x) in [-1.0, 0.3, 1.5].into_iter().enumerate() {
+            solid(&mut b, "wood", V(x, 0.26, -10.5), V(0.36, 0.26, 0.30));
+            for y in [0.12, 0.4] {
+                b.cube("dark", V(x, y, -10.19), V(0.33, 0.014, 0.01));
+            }
+            b.entity(
+                ["feta-crate-0", "feta-crate-1", "feta-crate-2"][i],
+                "Garden crate",
+                V(x, 0.26, -10.5),
+                V(0.36, 0.26, 0.30),
+            );
+        }
+        // Keep the play space bounded even when jumping from garden furniture.
+        for x in [-9.5, 9.5] {
+            b.obstacle(V(x, 5., -3.), V(0.08, 5., 11.5));
+        }
+        for z in [-14.5, 8.5] {
+            b.obstacle(V(0., 5., z), V(9.5, 5., 0.08));
+        }
+    }
     let compiled = Compiled::new(b.scene, Path::new("."))?;
     let world = compiled.at(0.);
     Ok(Room {
-        name: "Suburban House".into(),
+        name: if feta {
+            "Briar House"
+        } else {
+            "Suburban House"
+        }
+        .into(),
         simple_geometry: true,
         compiled,
         world,

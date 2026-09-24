@@ -143,3 +143,11 @@ Character engine edits: `CharacterKind` / `Controller::for_character` in control
 
 
 Furniture clearance: runtime room loading replaces matching table/desk/chair/bench/workbench semantic envelopes with contained visible-part collision bounds. Use a furniture noun as the final label word (e.g. Student desk or Dining table). Keep the full entity envelope for selection/ownership. Solid pedestals remain solid. Existing shipped maps need no data rewrite. Tests: tests/furniture_clearance.rs; moved furniture ghost-proxy regression in prop_physics.rs.
+
+## Feta game fork
+
+Shipping binaries are `feta` and `feta-server`; see docs/FETA_ARCHITECTURE.md.
+Use `cargo build --release --locked --bin feta` for the client and add
+`--no-default-features --bin feta-server` instead for the dedicated server.
+`feta --capture NEW_DIR` captures its actual menu and Briar House camera paths.
+The parent of NEW_DIR must exist. Read docs/HOSTING.md before deployment.

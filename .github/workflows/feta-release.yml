@@ -1,0 +1,41 @@
+name: Feta Windows build
+on:
+  workflow_dispatch:
+  push:
+    tags: ['feta-v*']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      RUSTFLAGS: '-C target-feature=+crt-static'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo test --locked --no-default-features
+      - run: cargo clippy --all-targets --locked --no-default-features -- -D warnings
+      - run: cargo clippy --locked --bin feta -- -D warnings
+      - run: cargo build --release --locked --bin feta
+      - name: Package standalone game and player guide
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path dist, bundle | Out-Null
+          Copy-Item target/release/feta.exe dist/Feta.exe
+          Copy-Item dist/Feta.exe bundle/Feta.exe
+          Copy-Item docs/PLAY_WITH_KEVIN.md bundle/START-HERE.txt
+          Copy-Item LICENSE bundle/LICENSE.txt
+          Copy-Item assets/branding/blueengine.ico bundle/Feta.ico
+          Compress-Archive -Path bundle/* -DestinationPath dist/Feta-Windows-x64.zip
+          Get-ChildItem dist -File | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Set-Content -Encoding ascii dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Feta-Windows-x64
+          path: dist/*
+          if-no-files-found: error

@@ -1,0 +1,20 @@
+[Unit]
+Description=Feta private two-player game server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Feta
+ExecStart=%h/.local/lib/feta/feta-server --listen 100.92.249.99:4000
+EnvironmentFile=%h/.config/feta/server.env
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+MemoryMax=256M
+TasksMax=16
+
+[Install]
+WantedBy=default.target
