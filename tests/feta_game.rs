@@ -393,7 +393,7 @@ fn map_spawn_clearance_and_rat_shortcut_are_real() {
         assert!((c.position - before).length() < 0.01);
     }
     let mut rat = feta::spawn(Role::Feta);
-    rat.set_physics_state(V(-1.3, 3.42, -2.7), 0., true);
+    rat.set_physics_state(V(-1.3, 3.42, 0.9), 0., true);
     rat.yaw = std::f32::consts::FRAC_PI_2;
     for _ in 0..20 {
         rat.update(
@@ -411,7 +411,7 @@ fn map_spawn_clearance_and_rat_shortcut_are_real() {
         rat.position
     );
     let mut human = feta::spawn(Role::Scientist);
-    human.set_physics_state(V(-1.3, 4.88, -2.7), 0., true);
+    human.set_physics_state(V(-1.3, 4.88, 0.9), 0., true);
     human.yaw = std::f32::consts::FRAC_PI_2;
     for _ in 0..30 {
         human.update(
@@ -424,6 +424,26 @@ fn map_spawn_clearance_and_rat_shortcut_are_real() {
         );
     }
     assert!(human.position.0 < -0.7);
+
+    // Wall between bedroom and bathroom (z = -2.7) is sealed with no hole:
+    let mut rat_bathroom = feta::spawn(Role::Feta);
+    rat_bathroom.set_physics_state(V(-1.3, 3.42, -2.7), 0., true);
+    rat_bathroom.yaw = std::f32::consts::FRAC_PI_2;
+    for _ in 0..20 {
+        rat_bathroom.update(
+            Movement {
+                forward: 1.,
+                ..Default::default()
+            },
+            feta::DT,
+            &room.colliders,
+        );
+    }
+    assert!(
+        rat_bathroom.position.0 < -0.6,
+        "bedroom-to-bathroom wall must be sealed: {:?}",
+        rat_bathroom.position
+    );
 }
 
 #[test]

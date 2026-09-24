@@ -93,14 +93,22 @@ fn facade(b: &mut Builder, along_x: bool, fixed: f32, base: f32, door: bool) {
         size((6. - cursor) * 0.5, 1.6),
     );
 }
-fn bed(b: &mut Builder, x: f32, z: f32, width: f32, id: &'static str) {
+fn bed(b: &mut Builder, x: f32, z: f32, width: f32, duvet_mat: &str, id: &'static str) {
     b.cube("wood", V(x, 3.4, z), V(width, 0.20, 1.15));
     b.cube("white", V(x, 3.68, z), V(width - 0.02, 0.08, 1.13));
-    b.cube("blue", V(x, 3.79, z + 0.3), V(width - 0.02, 0.03, 0.80));
+    b.cube(duvet_mat, V(x, 3.79, z + 0.3), V(width - 0.02, 0.035, 0.80));
+    b.cube("cushion", V(x, 3.81, z + 0.8), V(width - 0.02, 0.025, 0.20));
     b.cube("white", V(x, 3.80, z - 0.8), V(width * 0.70, 0.04, 0.25));
     b.cube("wood", V(x, 3.85, z - 1.21), V(width + 0.03, 0.65, 0.06));
     b.obstacle(V(x, 3.85, z - 1.21), V(width + 0.03, 0.65, 0.06));
     furniture(b, id, "Bed", V(x, 3.63, z), V(width + 0.03, 0.43, 1.28));
+}
+fn ceiling_light(b: &mut Builder, p: V) {
+    b.cube("white", p + V(0., 0.04, 0.), V(0.14, 0.04, 0.14));
+    b.cube("light-glow", p - V(0., 0.01, 0.), V(0.12, 0.015, 0.12));
+}
+fn baseboard(b: &mut Builder, p: V, s: V) {
+    b.cube("trim", p, s);
 }
 fn dining_chair(b: &mut Builder, id: &'static str, p: V, reverse: bool) {
     let first = b.scene.nodes.len();
@@ -144,11 +152,11 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         entities: vec![],
     };
     for (name, c) in [
-        ("wall", V(0.82, 0.76, 0.62)),
-        ("white", V(0.88, 0.89, 0.83)),
-        ("wood", V(0.45, 0.25, 0.12)),
-        ("floor", V(0.61, 0.40, 0.22)),
-        ("blue", V(0.055, 0.25, 0.48)),
+        ("wall", V(0.86, 0.82, 0.74)),
+        ("white", V(0.92, 0.93, 0.91)),
+        ("wood", V(0.48, 0.28, 0.14)),
+        ("floor", V(0.66, 0.44, 0.24)),
+        ("blue", V(0.08, 0.28, 0.52)),
         ("roof", V(0.13, 0.19, 0.24)),
         ("grass", V(0.16, 0.36, 0.10)),
         ("stone", V(0.48, 0.51, 0.49)),
@@ -157,8 +165,23 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         ("leaf", V(0.12, 0.30, 0.08)),
         ("tile", V(0.53, 0.70, 0.70)),
         ("soil", V(0.23, 0.14, 0.07)),
+        ("trim", V(0.96, 0.96, 0.95)),
+        ("ceiling", V(0.94, 0.94, 0.94)),
+        ("rug-red", V(0.62, 0.14, 0.16)),
+        ("rug-blue", V(0.12, 0.24, 0.48)),
+        ("rug-cream", V(0.86, 0.81, 0.68)),
+        ("rug-teal", V(0.25, 0.55, 0.56)),
+        ("duvet-master", V(0.65, 0.22, 0.18)),
+        ("duvet-guest", V(0.20, 0.42, 0.35)),
+        ("cushion", V(0.90, 0.68, 0.20)),
+        ("mirror", V(0.78, 0.85, 0.92)),
+        ("kitchen-tile", V(0.88, 0.90, 0.90)),
+        ("towel-blue", V(0.25, 0.48, 0.68)),
+        ("light-glow", V(0.98, 0.94, 0.78)),
     ] {
-        b.material(name, c, 0., 0.);
+        let emission = if name == "light-glow" { 0.9 } else { 0. };
+        let metallic = if name == "mirror" { 0.7 } else { 0. };
+        b.material(name, c, metallic, emission);
     }
     props::palette(&mut b);
     landscaping::palette(&mut b);
@@ -168,7 +191,9 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     solid(&mut b, "floor", V(-1.35, 3.12, 0.), V(4.65, 0.08, 6.));
     solid(&mut b, "floor", V(4.65, 3.12, -4.3), V(1.35, 0.08, 1.7));
     solid(&mut b, "floor", V(4.65, 3.12, 5.1), V(1.35, 0.08, 0.9));
-    solid(&mut b, "white", V(0., 6.48, 0.), V(6., 0.08, 6.));
+    // Clean bright downstairs ceiling under the second floor
+    b.cube("ceiling", V(-1.35, 3.039, 0.), V(4.65, 0.001, 6.));
+    solid(&mut b, "ceiling", V(0., 6.48, 0.), V(6., 0.08, 6.));
     for floor in [0., 3.2] {
         for z in [-6_f32, 6.] {
             facade(&mut b, true, z, floor, floor == 0.);
@@ -235,13 +260,15 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     solid(&mut b, "white", V(3.28, 3.7, 0.8), V(0.045, 0.50, 3.4));
     solid(&mut b, "white", V(4.65, 3.7, 4.18), V(1.35, 0.50, 0.045));
     // Upstairs: front hall, large bedroom west, bedroom and bathroom east.
+    // The wall separating the west bedroom and bathroom is always fully solid (no random hole into bathroom!):
+    solid(&mut b, "wall", V(-0.5, 4.8, -4.0), V(0.08, 1.6, 2.0));
     if feta {
-        // Low two-exit shortcut between the bedrooms: 48 cm clear, rat only.
-        solid(&mut b, "wall", V(-0.5, 4.8, -4.7), V(0.08, 1.6, 1.3));
-        solid(&mut b, "wall", V(-0.5, 4.8, 0.0), V(0.08, 1.6, 2.));
-        solid(&mut b, "wall", V(-0.5, 5.04, -2.7), V(0.08, 1.36, 0.7));
+        // Low two-exit shortcut between the two bedrooms: 48 cm clear, rat only.
+        solid(&mut b, "wall", V(-0.5, 4.8, -0.9), V(0.08, 1.6, 1.1));
+        solid(&mut b, "wall", V(-0.5, 4.8, 1.8), V(0.08, 1.6, 0.2));
+        solid(&mut b, "wall", V(-0.5, 5.04, 0.9), V(0.08, 1.36, 0.7));
     } else {
-        solid(&mut b, "wall", V(-0.5, 4.8, -2.), V(0.08, 1.6, 4.));
+        solid(&mut b, "wall", V(-0.5, 4.8, 0.0), V(0.08, 1.6, 2.0));
     }
     for (x, half) in [(-4.15, 1.85), (-0.65, 0.25), (0.75, 1.25)] {
         solid(&mut b, "wall", V(x, 4.8, 2.), V(half, 1.6, 0.08));
@@ -255,7 +282,32 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         solid(&mut b, "wall", V(2., 5.975, z), V(0.08, 0.425, half));
     }
     solid(&mut b, "wall", V(0.75, 4.8, -2.), V(1.25, 1.6, 0.08));
-    // Living room: sofa against the front wall, facing the TV on the solid partition.
+
+    // Baseboard moldings along interior walls for crisp wall-floor contrast
+    baseboard(&mut b, V(-3.0, 0.06, 5.91), V(2.9, 0.06, 0.015));
+    baseboard(&mut b, V(-4.95, 0.06, 0.09), V(1.05, 0.06, 0.015));
+    baseboard(&mut b, V(-5.91, 0.06, 3.0), V(0.015, 0.06, 2.9));
+    baseboard(&mut b, V(-3.0, 0.06, -5.91), V(2.9, 0.06, 0.015));
+    baseboard(&mut b, V(1.91, 3.26, -1.95), V(0.015, 0.06, 3.95));
+    baseboard(&mut b, V(-5.91, 3.26, -1.95), V(0.015, 0.06, 3.95));
+    baseboard(&mut b, V(-3.2, 3.26, 1.91), V(2.7, 0.06, 0.015));
+    baseboard(&mut b, V(0.7, 3.26, 1.91), V(1.2, 0.06, 0.015));
+    baseboard(&mut b, V(-0.41, 3.26, 0.05), V(0.015, 0.06, 1.95));
+
+    // Ceiling lights in every room
+    ceiling_light(&mut b, V(-3.8, 2.92, 3.2));
+    ceiling_light(&mut b, V(-3.5, 2.92, -3.2));
+    ceiling_light(&mut b, V(1.5, 2.92, 3.0));
+    ceiling_light(&mut b, V(3.5, 6.36, 0.5));
+    ceiling_light(&mut b, V(-3.2, 6.36, -1.8));
+    ceiling_light(&mut b, V(0.75, 6.36, -0.2));
+    ceiling_light(&mut b, V(0.8, 6.36, -3.8));
+
+    // Living room: area rug grounds the seating arrangement and contrasts with the wood floor.
+    b.cube("rug-blue", V(-3.8, 0.006, 4.0), V(1.7, 0.006, 1.5));
+    b.cube("rug-cream", V(-3.8, 0.009, 4.0), V(1.5, 0.004, 1.3));
+
+    // Sofa against the front wall, facing the TV on the solid partition.
     b.cube("blue", V(-3.8, 0.5, 4.65), V(1.5, 0.25, 0.7));
     for x in [-5.0, -2.6] {
         for z in [4.2, 5.1] {
@@ -266,6 +318,9 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     for x in [-5.3, -2.3] {
         b.cube("blue", V(x, 0.70, 4.65), V(0.10, 0.45, 0.7));
     }
+    // Decorative throw cushions on sofa
+    b.cube("cushion", V(-4.8, 0.72, 4.75), V(0.18, 0.16, 0.12));
+    b.cube("cushion", V(-2.8, 0.72, 4.75), V(0.18, 0.16, 0.12));
     furniture(
         &mut b,
         "house-sofa",
@@ -273,6 +328,18 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         V(-3.8, 0.65, 4.65),
         V(1.6, 0.65, 0.75),
     );
+
+    // End table next to sofa with lamp
+    solid(&mut b, "wood", V(-2.2, 0.28, 4.65), V(0.18, 0.28, 0.28));
+    props::place(
+        &mut b,
+        PropKind::TableLamp,
+        "living-lamp",
+        "Living room lamp",
+        V(-2.2, 0.56, 4.65),
+    );
+
+    // TV and media cabinet
     cabinet(&mut b, V(-4.9, 0.32, 0.46), V(0.85, 0.32, 0.3));
     solid(&mut b, "dark", V(-4.9, 1.35, 0.15), V(0.80, 0.48, 0.07));
     b.entity(
@@ -281,6 +348,13 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         V(-4.9, 1.35, 0.15),
         V(0.80, 0.48, 0.07),
     );
+
+    // Corner bookcase in living room
+    solid(&mut b, "wood", V(-5.6, 1.05, 2.3), V(0.24, 1.05, 0.50));
+    b.cube("floor", V(-5.35, 1.05, 2.3), V(0.015, 1.0, 0.48));
+    b.cube("cushion", V(-5.4, 0.50, 2.3), V(0.10, 0.14, 0.35));
+    b.cube("duvet-guest", V(-5.4, 1.10, 2.3), V(0.10, 0.16, 0.30));
+
     // Low coffee table, with walking space around the seating group.
     b.cube("wood", V(-3.8, 0.46, 2.8), V(0.75, 0.04, 0.42));
     for x in [-4.4, -3.2] {
@@ -295,6 +369,7 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         V(-3.8, 0.25, 2.8),
         V(0.75, 0.25, 0.42),
     );
+
     // Accessories sit on existing surfaces or flush against solid interior walls.
     for (kind, id, label, p) in [
         (
@@ -336,6 +411,37 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     ] {
         props::place(&mut b, kind, id, label, p);
     }
+
+    // Downstairs front entry: runner rug and console table
+    b.cube("rug-red", V(0.0, 0.006, 4.8), V(0.55, 0.006, 0.85));
+    solid(&mut b, "wood", V(1.5, 0.38, 5.65), V(0.50, 0.38, 0.18));
+    props::place(
+        &mut b,
+        PropKind::Bowl,
+        "entry-bowl",
+        "Key bowl",
+        V(1.6, 0.76, 5.65),
+    );
+    props::place(
+        &mut b,
+        PropKind::TableLamp,
+        "entry-lamp",
+        "Console lamp",
+        V(1.2, 0.76, 5.65),
+    );
+
+    // Kitchen: Subway tile backsplash along west wall
+    b.cube("kitchen-tile", V(-5.88, 1.45, -3.9), V(0.02, 0.45, 1.65));
+    // Upper wall cabinets
+    b.cube("white", V(-5.65, 2.35, -3.9), V(0.22, 0.42, 1.60));
+    b.cube("floor", V(-5.42, 2.35, -3.9), V(0.01, 0.40, 1.58));
+    for z in [-4.7, -3.9, -3.1] {
+        b.cube("dark", V(-5.40, 2.15, z), V(0.012, 0.08, 0.015));
+    }
+    // Kitchen runner rug
+    b.cube("rug-cream", V(-4.4, 0.006, -3.9), V(0.40, 0.006, 1.5));
+    b.cube("rug-red", V(-4.4, 0.009, -3.9), V(0.35, 0.004, 1.4));
+
     // Kitchen counters, refrigerator, sink and hob.
     solid(&mut b, "white", V(-5.3, 0.46, -3.9), V(0.55, 0.46, 1.65));
     b.cube("stone", V(-5.3, 0.96, -3.9), V(0.57, 0.04, 1.67));
@@ -352,6 +458,9 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         V(-5.3, 1., -1.5),
         V(0.55, 1., 0.55),
     );
+
+    // Dining table runner and settings
+    b.cube("rug-cream", V(-2.2, 0.804, -3.4), V(0.24, 0.004, 0.75));
     props::place(
         &mut b,
         PropKind::CerealBox,
@@ -368,6 +477,13 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     );
     props::place(
         &mut b,
+        PropKind::MantelClock,
+        "kitchen-clock",
+        "Kitchen clock",
+        V(-2.85, 2.4, 0.16),
+    );
+    props::place(
+        &mut b,
         PropKind::Table,
         "house-dining-table",
         "Dining table",
@@ -375,14 +491,78 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     );
     dining_chair(&mut b, "house-chair-1", V(-2.2, 0., -2.5), false);
     dining_chair(&mut b, "house-chair-2", V(-2.2, 0., -4.3), true);
+
+    // Upstairs hallway corridor runner and art on solid wall
+    b.cube("rug-red", V(2.8, 3.206, 0.0), V(0.40, 0.006, 2.4));
+    b.cube("rug-cream", V(2.8, 3.209, 0.0), V(0.32, 0.004, 2.2));
+    props::place(
+        &mut b,
+        PropKind::FramedArt,
+        "corridor-art-1",
+        "Framed print",
+        V(1.91, 4.8, -2.5),
+    );
+
     // Bedrooms: headboards touch the rear walls; storage faces accessible floor space.
-    bed(&mut b, -3.6, -4.60, 0.85, "house-bed-1");
-    bed(&mut b, 0.20, -0.65, 0.55, "house-bed-2");
-    cabinet(&mut b, V(-1.4, 4.3, -5.4), V(0.6, 1.1, 0.45));
+    // Master bedroom (west):
+    bed(&mut b, -3.6, -4.60, 0.85, "duvet-master", "house-bed-1");
+    // Master bedroom rug
+    b.cube("rug-blue", V(-3.6, 3.206, -3.8), V(1.5, 0.006, 1.7));
+    b.cube("rug-cream", V(-3.6, 3.209, -3.8), V(1.3, 0.004, 1.5));
+    // Left nightstand
     cabinet(&mut b, V(-4.95, 3.55, -4.85), V(0.30, 0.35, 0.30));
-    // Removed the free-standing room divider, hall cupboard and misplaced island.
+    // Right nightstand with lamp
+    cabinet(&mut b, V(-2.25, 3.55, -5.45), V(0.28, 0.35, 0.28));
+    props::place(
+        &mut b,
+        PropKind::TableLamp,
+        "master-lamp-r",
+        "Bedside lamp",
+        V(-2.25, 3.9, -5.45),
+    );
+    // Wardrobe
+    cabinet(&mut b, V(-1.4, 4.3, -5.4), V(0.6, 1.1, 0.45));
+    props::place(
+        &mut b,
+        PropKind::WovenBasket,
+        "master-basket",
+        "Woven basket",
+        V(-5.4, 3.2, -3.2),
+    );
+
+    // Second bedroom (east):
+    bed(&mut b, 0.20, -0.65, 0.55, "duvet-guest", "house-bed-2");
+    // Bedroom rug
+    b.cube("rug-cream", V(0.20, 3.206, -0.4), V(0.85, 0.006, 1.4));
+    b.cube("rug-red", V(0.20, 3.209, -0.4), V(0.70, 0.004, 1.2));
+    // Bedside table with lamp and clock
+    cabinet(&mut b, V(1.2, 3.55, -1.5), V(0.28, 0.35, 0.28));
+    props::place(
+        &mut b,
+        PropKind::TableLamp,
+        "bed2-lamp",
+        "Bedside lamp",
+        V(1.2, 3.9, -1.5),
+    );
+    props::place(
+        &mut b,
+        PropKind::MantelClock,
+        "bed2-clock",
+        "Clock",
+        V(1.2, 3.9, -1.25),
+    );
+    props::place(
+        &mut b,
+        PropKind::FramedArt,
+        "bed2-art",
+        "Sunrise print",
+        V(0.20, 4.9, 1.91),
+    );
+
     // Bathroom: recessed tub, basin and recognizable toilet, not plain blocks.
     solid(&mut b, "tile", V(0.7, 3.215, -4.0), V(1.1, 0.015, 1.9));
+    // Bath mat in front of tub
+    b.cube("rug-teal", V(0.9, 3.22, -4.5), V(0.38, 0.006, 0.60));
     b.obstacle(V(0.3, 3.5, -5.1), V(0.5, 0.3, 0.65));
     b.cube("tile", V(0.3, 3.3, -5.1), V(0.5, 0.1, 0.65));
     for x in [-0.15, 0.75] {
@@ -393,12 +573,22 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     }
     b.cube("dark", V(0.3, 3.86, -5.65), V(0.025, 0.10, 0.025));
     b.cube("dark", V(0.3, 3.94, -5.57), V(0.025, 0.02, 0.1));
+    // Towel bar and fluffy towels on bathroom wall
+    b.cube("dark", V(-0.41, 4.4, -4.5), V(0.015, 0.015, 0.35));
+    b.cube("towel-blue", V(-0.39, 4.15, -4.6), V(0.025, 0.24, 0.12));
+    b.cube("white", V(-0.39, 4.20, -4.4), V(0.025, 0.19, 0.12));
     // Toilet faces into the room from the partition wall.
     solid(&mut b, "white", V(0.1, 3.43, -2.7), V(0.20, 0.23, 0.32));
     solid(&mut b, "white", V(0.1, 3.77, -2.45), V(0.25, 0.25, 0.10));
     b.cube("white", V(0.1, 3.70, -2.82), V(0.27, 0.04, 0.29));
     b.cube("tile", V(0.1, 3.746, -2.83), V(0.17, 0.006, 0.19));
     b.cube("dark", V(0.22, 4.025, -2.45), V(0.04, 0.015, 0.025));
+    // Toiletries shelf with perfume bottles above toilet wall
+    solid(&mut b, "white", V(0.1, 4.4, -2.12), V(0.30, 0.02, 0.10));
+    b.cube("tile", V(0.0, 4.47, -2.12), V(0.035, 0.05, 0.035));
+    b.cube("duvet-guest", V(0.15, 4.46, -2.12), V(0.03, 0.04, 0.03));
+
+    // Sink vanity and mirror
     cabinet(&mut b, V(1.3, 3.6, -5.3), V(0.36, 0.4, 0.4));
     b.cube("tile", V(1.3, 4.015, -5.3), V(0.28, 0.015, 0.31));
     for x in [0.97, 1.63] {
@@ -408,6 +598,9 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
         b.cube("white", V(1.3, 4.065, z), V(0.3, 0.055, 0.04));
     }
     b.cube("dark", V(1.3, 4.20, -5.6), V(0.025, 0.09, 0.025));
+    // Vanity mirror with trim frame
+    b.cube("trim", V(1.3, 4.75, -5.91), V(0.32, 0.38, 0.015));
+    b.cube("mirror", V(1.3, 4.75, -5.89), V(0.28, 0.34, 0.01));
     b.entity(
         "house-bath",
         "Bathroom",
@@ -481,11 +674,11 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     // Picket fence with solid collision boundaries; no escape through visual gaps.
     for x in [-9.5, 9.5] {
         b.obstacle(V(x, 0.95, -3.), V(0.08, 0.95, 11.5));
-        for i in 0..58 {
+        for i in 0..39 {
             b.cube(
                 "fence",
-                V(x, 0.95, -14.5 + i as f32 * 0.4),
-                V(0.05, 0.95, 0.16),
+                V(x, 0.95, -14.2 + i as f32 * 0.6),
+                V(0.05, 0.95, 0.22),
             );
         }
         for y in [0.4, 1.3] {
@@ -494,11 +687,11 @@ fn build_variant(feta: bool) -> crate::Result<Room> {
     }
     for z in [-14.5, 8.5] {
         b.obstacle(V(0., 0.95, z), V(9.5, 0.95, 0.08));
-        for i in 0..48 {
+        for i in 0..32 {
             b.cube(
                 "fence",
-                V(-9.4 + i as f32 * 0.4, 0.95, z),
-                V(0.16, 0.95, 0.05),
+                V(-9.3 + i as f32 * 0.6, 0.95, z),
+                V(0.22, 0.95, 0.05),
             );
         }
         for y in [0.4, 1.3] {

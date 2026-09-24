@@ -32,9 +32,10 @@ is clamped to 12 ticks (200 ms) of server-owned pose history. A shot at the exac
 deadline loses to survival. No client can submit a hit, position, timer, or winner.
 
 The map is static, including props; there is no physics-prop replication or pickup.
-Both roles use BlueEngine collision/movement profiles. Feta keeps the low smooth
-third-person camera. Scientist uses first-person aiming to align the server ray with
-the crosshair. Remote players interpolate roughly 100 ms behind; own movement predicts
+Both roles use BlueEngine collision/movement profiles and begin each round in
+first-person mode by default (toggled with Q). Feta retains the low smooth
+third-person camera option, and Scientist uses first-person aiming to align the
+server ray with the crosshair. Remote players interpolate roughly 100 ms behind; own movement predicts
 and replays inputs after authoritative correction.
 
 Security uses Quinn/Rustls QUIC datagrams with TLS 1.3 and the bundled server

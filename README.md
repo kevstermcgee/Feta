@@ -28,7 +28,7 @@ are static cover. This is not prop hunt: there is no disguising or prop carrying
 | Ctrl or C | Crouch |
 | Left click | Scientist's pistol |
 | Right click | Scientist's wrench |
-| Q | Feta's first/third-person camera |
+| Q | Toggle first/third-person camera |
 | Esc | Resume / Settings / Disconnect / Quit |
 
 The server is authoritative at 60 Hz and sends small snapshots at 20 Hz. Client
