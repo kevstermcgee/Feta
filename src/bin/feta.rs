@@ -57,6 +57,7 @@ fn config() -> macroquad::conf::Conf {
             high_dpi: true,
             sample_count: 4,
             window_resizable: true,
+            fullscreen: vesper3d::viewer::startup::default_fullscreen(),
             ..Default::default()
         },
         draw_call_vertex_capacity: 30000,
@@ -157,6 +158,7 @@ fn own(state: &State, slot: usize) -> Option<&vesper3d::viewer::feta::PlayerView
 
 #[macroquad::main(config)]
 async fn main() {
+    vesper3d::viewer::startup::show().await;
     if let Err(e) = run().await {
         let message = e.to_string();
         feta_input::capture(false);
@@ -241,8 +243,13 @@ async fn run() -> vesper3d::Result<()> {
         std::fs::create_dir(dir)?;
     }
     let mut frame = 0;
+    let mut fullscreen = vesper3d::viewer::startup::default_fullscreen();
     loop {
         frame += 1;
+        if is_key_pressed(KeyCode::F11) {
+            fullscreen = !fullscreen;
+            macroquad::miniquad::window::set_fullscreen(fullscreen);
+        }
         let dt = get_frame_time().clamp(0., 0.133);
         repeat_all_miniquad_input(&mut keys, subscriber);
         keys.poll(feta_input::foreground());

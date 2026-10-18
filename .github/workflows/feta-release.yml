@@ -29,6 +29,35 @@ jobs:
       - run: cargo clippy --all-targets --locked --no-default-features -- -D warnings
       - run: cargo clippy --locked --bin feta -- -D warnings
       - run: cargo build --release --locked --bin feta
+      - name: Prepare pinned software OpenGL for graphical verification
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'mesa-ci.7z'
+          $mesa = Join-Path $env:RUNNER_TEMP 'mesa-ci'
+          Invoke-WebRequest 'https://github.com/pal1000/mesa-dist-win/releases/download/26.2.4/mesa3d-26.2.4-release-msvc.7z' -OutFile $archive
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne '351fc8c8b695878ffb3eaa044b3ead08672a48b1a045e3c3e3975811df0f6695') { throw 'Mesa checksum mismatch' }
+          & 7z x $archive "-o$mesa" 'x64/*' -y
+          if ($LASTEXITCODE -ne 0) { throw 'Mesa extraction failed' }
+          "BE2_CI_OPENGL_DIR=$(Join-Path $mesa 'x64')" >> $env:GITHUB_ENV
+      - name: Verify real studio card, fullscreen default and first toggle
+        shell: pwsh
+        run: |
+          ./tools/check_startup_windows.ps1 -Executable target/release/feta.exe -ExpectedTitle 'Feta' -OutputDirectory dist/startup -OpenGLDirectory $env:BE2_CI_OPENGL_DIR
+      - name: Verify unchanged offline exploration and pause presentation
+        shell: python
+        run: |
+          import ctypes, os, subprocess
+          from pathlib import Path
+          kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+          kernel.SetDllDirectoryW.argtypes = [ctypes.c_wchar_p]
+          kernel.SetDllDirectoryW.restype = ctypes.c_int
+          if not kernel.SetDllDirectoryW(os.environ['BE2_CI_OPENGL_DIR']): raise ctypes.WinError(ctypes.get_last_error())
+          try:
+              env = dict(os.environ, GALLIUM_DRIVER='llvmpipe', LIBGL_ALWAYS_SOFTWARE='1', BLUEENGINE_DATA_DIR=str(Path('dist/capture-player').resolve()))
+              subprocess.run(['target/release/feta.exe', '--capture', str(Path('dist/gameplay-captures').resolve())], env=env, check=True, timeout=150)
+              assert len(list(Path('dist/gameplay-captures').glob('*.png'))) == 11, 'Incomplete original gameplay/capture route'
+          finally:
+              kernel.SetDllDirectoryW(None)
       - name: Verify encrypted connection from outside the host network
         if: github.event_name == 'workflow_dispatch' && inputs.network_smoke
         env:
@@ -38,7 +67,7 @@ jobs:
       - name: Package standalone game and player guide
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path dist, bundle | Out-Null
+          New-Item -ItemType Directory -Path dist, bundle -Force | Out-Null
           Copy-Item target/release/feta.exe dist/Feta.exe
           Copy-Item dist/Feta.exe bundle/Feta.exe
           Copy-Item docs/PLAY_WITH_KEVIN.md bundle/START-HERE.txt

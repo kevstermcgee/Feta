@@ -38,3 +38,8 @@ pub mod metrics;
 pub mod net;
 pub mod server;
 pub mod spatial;
+
+#[cfg(feature = "client")]
+pub mod game_text;
+#[cfg(feature = "client")]
+pub mod startup;
