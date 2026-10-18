@@ -222,6 +222,8 @@ async fn run() -> vesper3d::Result<()> {
     let mut fov = 75_f32;
     let mut settings_open = false;
     let mut keys = feta_input::Keys::default();
+    // Consume Windows' historical native press bit for keys used to skip the studio card.
+    keys.poll(false);
     let subscriber = register_input_subscriber();
     let mut input = Input::default();
     let mut accumulator = 0_f32;
