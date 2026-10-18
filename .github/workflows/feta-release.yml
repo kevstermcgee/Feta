@@ -31,6 +31,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: feta-windows-studio
+          cache-on-failure: true
       - run: cargo fmt --check
       - run: cargo test --locked --no-default-features
       - run: cargo clippy --all-targets --locked --no-default-features -- -D warnings
@@ -86,7 +90,8 @@ jobs:
             "$hash  $($_.Name)"
           } | Set-Content -Encoding ascii dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Feta-Windows-x64
           path: dist/*
-          if-no-files-found: error
+          if-no-files-found: warn
