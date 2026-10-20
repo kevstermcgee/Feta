@@ -1,7 +1,5 @@
 # Feta
 
-<img src="assets/branding/blueengine.png" alt="Feta the white rat" width="112">
-
 A small, private, two-player cat-and-mouse game built on BlueEngine.
 One Scientist. One very quick rat. One furnished house and garden.
 
@@ -70,5 +68,4 @@ The original BlueEngine tools/binaries remain available for development; see
 
 Game direction: Kevin Ward. Feta implementation and tooling: OpenAI Codex, working
 with Kevin. Built on BlueEngine, retaining its original MIT license and history,
-including the earlier Google DeepMind Antigravity contributions. The approved white
-rat artwork is preserved. See [LICENSE](LICENSE).
+including the earlier Google DeepMind Antigravity contributions. See [LICENSE](LICENSE).

@@ -24,34 +24,11 @@ use vesper3d::{
 const INK: Color = Color::new(0.92, 0.94, 0.91, 1.);
 const MUTED: Color = Color::new(0.59, 0.65, 0.66, 1.);
 const ACCENT: Color = Color::new(0.46, 0.78, 0.64, 1.);
-fn icon() -> Option<miniquad::conf::Icon> {
-    let image =
-        Image::from_file_with_format(include_bytes!("../../assets/branding/blueengine.png"), None)
-            .ok()?;
-    fn sample<const N: usize>(image: &Image, side: usize) -> [u8; N] {
-        let mut bytes = [0; N];
-        for y in 0..side {
-            for x in 0..side {
-                let src = ((y * image.height as usize / side) * image.width as usize
-                    + x * image.width as usize / side)
-                    * 4;
-                bytes[(y * side + x) * 4..(y * side + x) * 4 + 4]
-                    .copy_from_slice(&image.bytes[src..src + 4]);
-            }
-        }
-        bytes
-    }
-    Some(miniquad::conf::Icon {
-        small: sample(&image, 16),
-        medium: sample(&image, 32),
-        big: sample(&image, 64),
-    })
-}
 fn config() -> macroquad::conf::Conf {
     macroquad::conf::Conf {
         miniquad_conf: Conf {
             window_title: "Feta".into(),
-            icon: icon(),
+            icon: None,
             window_width: 1100,
             window_height: 720,
             high_dpi: true,

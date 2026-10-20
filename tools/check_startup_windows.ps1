@@ -109,6 +109,23 @@ function Save-Window([IntPtr]$Window, [string]$Name, [switch]$StudioCard, [switc
         }
       }
       if ($lightPixels -lt 30) { throw "Studio title was not visible in $Name.png (light title samples: $lightPixels)." }
+      # The former studio-image area stays empty on the text-only card.
+      $artworkPixels = 0
+      $artworkSamples = 0
+      $x0 = [Math]::Max(0, [int]($width / 2 - 50 * $scale))
+      $x1 = [Math]::Min($width, [int]($width / 2 + 50 * $scale))
+      $y0 = [Math]::Max(0, [int]($height * 0.43 - 102 * $scale))
+      $y1 = [Math]::Min($height, [int]($height * 0.43 - 10 * $scale))
+      for ($y = $y0; $y -lt $y1; $y += 3) {
+        for ($x = $x0; $x -lt $x1; $x += 3) {
+          $pixel = $bitmap.GetPixel($x, $y)
+          $artworkSamples++
+          if ($pixel.R -gt 32 -or $pixel.G -gt 32 -or $pixel.B -gt 32) { $artworkPixels++ }
+        }
+      }
+      if ($artworkPixels -gt [Math]::Max(5, $artworkSamples * 0.01)) {
+        throw "Studio image area was not empty in $Name.png (non-background samples: $artworkPixels)."
+      }
     } elseif ($GameFrame) {
       # Ignore title bars/taskbars: they can be visible while the client is still black.
       $visiblePixels = 0

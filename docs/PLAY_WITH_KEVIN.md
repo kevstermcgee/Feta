@@ -1,6 +1,6 @@
 # Play Feta with Kevin — Windows setup
 
-Feta opens fullscreen with a short **BlueEngine Games** studio card. Press a key or click to skip, then release the control before the game menu appears. F11 switches between fullscreen and a window. Launch with `--windowed` for a windowed session; explicit capture runs retain their original window size and frame timing.
+Feta opens fullscreen with a short **BlueEngine Games** studio card. Playtest 4 uses centered text without the retired rat image. Press a key or click to skip, then release the control before the game menu appears. F11 switches between fullscreen and a window. Launch with `--windowed` for a windowed session; explicit capture runs retain their original window size and frame timing.
 
 You need a Windows 10/11 64-bit PC, a mouse and keyboard, and an internet connection.
 **No Tailscale, VPN, game account, or developer tools are needed.** Encryption and

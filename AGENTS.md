@@ -54,8 +54,8 @@ CLAUDE.md imports this file; keep shared guidance here.
 
 ## Official branding
 
-Use `assets/branding/blueengine.ico` as the official BlueEngine icon and
-`assets/branding/blueengine.png` as the default project logo unless the user
-explicitly specifies otherwise. This is the user-approved white rat on a blue tile,
-originally `scripts/test_lab.ico`. Preserve the artwork; do not regenerate, replace
-or redesign it as part of routine engine/game work. See assets/branding/README.md.
+The user retired the white-rat image on 2026-10-19, including the rat on the blue
+tile in `assets/branding/blueengine.png` and `blueengine.ico`. Do not reuse it in
+title screens, icons, logos, new projects or other artwork unless the user explicitly
+requests it again. This replaces older branding approval. Keep the BlueEngine Games
+studio card simple with centered text. Historical artwork remains for compatibility.
